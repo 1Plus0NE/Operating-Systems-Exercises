@@ -13,7 +13,6 @@ int main (int argc, char * argv[]){
 		_exit(1);
 	}
 
-	//TODO
 	pid_t pid = getpid(); // client's pid
 	char client_name[64];
 	sprintf(client_name, CLIENT"_%d", pid);
@@ -42,6 +41,8 @@ int main (int argc, char * argv[]){
 		unlink(client_name); 
 		_exit(1);
 	}
+
+	close(fd);
 
 	int fd_client = open(client_name, O_RDONLY);
 	if(fd_client < 0){

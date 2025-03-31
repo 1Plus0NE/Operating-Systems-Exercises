@@ -6,43 +6,51 @@
 #include "defs.h"
 #include "vector.h"
 
-//FIFO criado pelo servidor
-//Cliente pode receber um sigpipe (concorrência!)
+int main(int argc, char *argv[]){
+    init_vector();
+    print_vector();
+    unlink(SERVER);  
 
-int main (int argc, char * argv[]){
-
-	init_vector();
-	print_vector();
-
-	unlink(SERVER);
-
-	if(mkfifo(SERVER, 0666)){
-        perror("Error creating fifo.");
-        return 0;
+    if(mkfifo(SERVER, 0666)){
+        perror("Error creating FIFO.");
+        return 1;
     }
 
-	int fd = open(SERVER, O_RDONLY);
-	printf("Server open...\n");
-	Msg msg;	
+    printf("Server open...\n");
 
-	while(1){
-		int read_bytes = read(fd, &msg, sizeof(msg));
-		while(read_bytes > 0){
-			printf("Received needle %d from client %d\n", msg.needle, msg.pid);
-			msg.occurrences = count_needle(msg.needle);
+    int fd = open(SERVER, O_RDONLY); 
+    if(fd < 0){
+        perror("Error opening server FIFO.");
+        return 1;
+    }
 
-			// answer for client's fifo
-			char fifo_name[50];
-			sprintf(fifo_name, CLIENT"_%d", msg.pid);
+    // Keep FIFO open by opening a dummy write descriptor
+    int fd_dummy = open(SERVER, O_WRONLY);
+    
+    Msg msg;
+    while(1){  
+        int read_bytes = read(fd, &msg, sizeof(msg));
+        if(read_bytes < 0){
+			perror("Error reading from FIFO.");
+            return 0;
+        }
 
-			int fd_client = open(fifo_name, O_WRONLY);
-			write(fd_client, &msg, sizeof(msg));
+        printf("Received needle %d from client %d\n", msg.needle, msg.pid);
+        msg.occurrences = count_needle(msg.needle);
 
-			close(fd_client);
-		}
+        // answer for client's fifo
+        char fifo_name[50];
+        sprintf(fifo_name, CLIENT"_%d", msg.pid);
 
-	}
-	close(fd);
-	unlink(SERVER);
-	return 0;
+        int fd_client = open(fifo_name, O_WRONLY);
+        write(fd_client, &msg, sizeof(msg));
+
+        close(fd_client);
+    }
+
+    close(fd);
+    close(fd_dummy);
+    unlink(SERVER);
+
+    return 0;
 }
