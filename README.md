@@ -1,3 +1,3 @@
-# SO - Sistemas Operativos
+# Operating Systems Guides
 
-Resolução de guiões.
+Solved guides regarding the Operating Systems class at Minho's University.
